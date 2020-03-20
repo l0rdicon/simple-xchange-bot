@@ -101,7 +101,7 @@ async function run() {
                 let xchangeMarketStr = "BTC_" + currency
                 updateBalances = true
                 try {
-                    //  await xchangeCancelOrders(xchangeMarketStr)
+                    await xchangeCancelOrders(xchangeMarketStr)
                 } catch (e) {
                     // console.log("error cancle orders", e)
                 }
@@ -240,7 +240,7 @@ async function run() {
                 }
                 console.log("     found buy / sell quantites", buyQty, sellQty)
 
-                /*
+
                 try {
                     // final sanity check
                     for (let i = 0; i < buyPrices.length; i++) {
@@ -256,7 +256,7 @@ async function run() {
                 } catch (e) {
                     // console.log("buy/sell error", e)
                 }
-                */
+
 
                 console.log("finished", currency, buyPrices.length, sellPrices.length)
                 currentAvgRate[currency] = parseFloat(avgRate[currency])
@@ -294,27 +294,13 @@ function sanityCheck() {
 
         if ((sellPercentageFromCurrentMarket > 0 && buyPercentageFromCurrentMarket > 0) && buyPercentageFromCurrentMarket > sellPercentageFromCurrentMarket) {
             console.log(currency, "buy and sell percentage overlap!. would always result in buy price higher then sell price.")
-            // process.exit(1)
-        }
-
-
-        // if -buy% && -sell%  faile
-        // if -buy%  then sell%  <= absolute(-buy%) = fail
-        // if -sell% then buy%  <= absoulte(-sell%) = fail
-        if (sellPercentageFromCurrentMarket < 0 && buyPercentageFromCurrentMarket >= Math.abs(sellPercentageFromCurrentMarket)) {
-            console.log(currency, "buy and sell percentage overlap 1! would result in identicle buy/sell prices")
-            //     process.exit(1)
-        }
-
-        if (buyPercentageFromCurrentMarket > 0 && sellPercentageFromCurrentMarket <= Math.abs(buyPercentageFromCurrentMarket)) {
-            console.log(currency, "buy and sell percentage overlap 2! would result in identicle buy/sell prices")
-            //  process.exit(1)
+            process.exit(1)
         }
 
 
         if (market.spreadOrders > 3) {
             console.log(currency, "too many spead orders: ", market.spreadOrders, ". Max is 3")
-            // process.exit(1)
+            process.exit(1)
         }
     }
 
