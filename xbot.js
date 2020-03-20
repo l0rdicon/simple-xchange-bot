@@ -124,10 +124,11 @@ async function run() {
             let btcQuantityTotalForMarket = 0
 
             if (parseFloat(avgRate[currency]) > 0 && parseFloat(currentAvgRate[currency]) !== parseFloat(avgRate[currency])) {
-                console.log(currency, "calculating avgRate:", parseFloat(avgRate[currency]), currentAvgRate[currency])
+                console.log(currency, "calculating avgRate:", parseFloat(avgRate[currency]), currentAvgRate[currency], parseFloat(balances["BTC"].available), parseFloat(balances[currency].available))
 
-                if (parseFloat(balances["BTC"].available !== 0)) {
-                    let btcQuantityTotalForMarket = Math.floor(btcBalanceAvailable * (market.btcPoolPercentage / 100) * 1e8) / 1e8
+                if (parseFloat(balances["BTC"].available) > 0) {
+
+                    btcQuantityTotalForMarket = Math.floor(btcBalanceAvailable * (market.btcPoolPercentage / 100) * 1e8) / 1e8
                     if (parseFloat(btcQuantityTotalForMarket) > parseFloat(balances["BTC"].available)) {
                         btcQuantityTotalForMarket = btcBalanceAvailable
                     }
@@ -137,9 +138,9 @@ async function run() {
                     }
                 }
 
-                if (parseFloat(balances[currency].available !== 0)) {
+                if (parseFloat(balances[currency].available) > 0) {
                     let fullpower = '1e' + Config.quantityDecimalPrecision[currency]
-                    let sellQuantityTotalForMarket = Math.floor(parseFloat(balances[currency].available) * fullpower) / fullpower
+                    sellQuantityTotalForMarket = Math.floor(parseFloat(balances[currency].available) * fullpower) / fullpower
                     if (market.maxOnOrders > 0 && sellQuantityTotalForMarket > market.maxOnOrders) {
                         console.log("     filtering sell quantity", sellQuantityTotalForMarket, market.maxOnOrders)
                         sellQuantityTotalForMarket = market.maxOnOrders
@@ -147,7 +148,7 @@ async function run() {
                 }
             }
 
-            console.log("     found max buy/sell quantities", btcQuantityTotalForMarket.toFixed(8), sellQuantityTotalForMarket, fullpower, Math.floor(parseFloat(balances[currency].available) * fullpower))
+            console.log("     found max buy/sell quantities", btcQuantityTotalForMarket.toFixed(8), sellQuantityTotalForMarket)
 
             let buyPrice = toFixedSpecial(parseFloat(avgRate[currency]) + (parseFloat(avgRate[currency]) * (market.buyPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
             if (market.maxPrice > 0 && buyPrice > market.maxPrice) {
@@ -272,15 +273,16 @@ async function run() {
             console.log("finished", currency, buyPrices.length, sellPrices.length)
             currentAvgRate[currency] = parseFloat(avgRate[currency])
         }
-    }
-if (firstrun === true) {
-        firstrun = false
-    }
-    defer.setTimeout(run, Config.update_interval * 1000)
-} catch (e) {
-    defer.setTimeout(run, Config.update_interval * 1000)
 
-}
+        if (firstrun === true) {
+            firstrun = false
+        }
+        defer.setTimeout(run, Config.update_interval * 1000)
+    } catch (e) {
+        console.log(e)
+        defer.setTimeout(run, Config.update_interval * 1000)
+
+    }
 }
 defer.setTimeout(run, 10)
 
