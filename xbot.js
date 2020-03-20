@@ -101,7 +101,7 @@ async function run() {
                 let xchangeMarketStr = "BTC_" + currency
                 updateBalances = true
                 try {
-                    await xchangeCancelOrders(xchangeMarketStr)
+                    //  await xchangeCancelOrders(xchangeMarketStr)
                 } catch (e) {
                     // console.log("error cancle orders", e)
                 }
@@ -120,7 +120,7 @@ async function run() {
             let market = Config.markets[currency]
             let xchangeMarketStr = "BTC_" + currency
             if (parseFloat(avgRate[currency]) > 0 && parseFloat(currentAvgRate[currency]) !== parseFloat(avgRate[currency])) {
-                console.log(currency, "calculating", btcBalanceAvailable, parseFloat(avgRate[currency]), currentAvgRate[currency])
+                console.log(currency, "calculating avgRate:", parseFloat(avgRate[currency]), currentAvgRate[currency])
                 let btcQuantityTotalForMarket = Math.floor(btcBalanceAvailable * (market.btcPoolPercentage / 100) * 1e8) / 1e8
                 if (parseFloat(btcQuantityTotalForMarket) > parseFloat(balances["BTC"].available)) {
                     btcQuantityTotalForMarket = btcBalanceAvailable
@@ -142,7 +142,7 @@ async function run() {
 
                 console.log("     found max buy/sell quantities", btcQuantityTotalForMarket.toFixed(8), sellQuantityTotalForMarket, fullpower, Math.floor(parseFloat(balances[currency].available) * fullpower))
 
-                let buyPrice = toFixedSpecial(parseFloat(avgRate[currency]) - (parseFloat(avgRate[currency]) * (market.buyPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
+                let buyPrice = toFixedSpecial(parseFloat(avgRate[currency]) + (parseFloat(avgRate[currency]) * (market.buyPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
                 if (market.maxPrice > 0 && buyPrice > market.maxPrice) {
                     console.log("     filtering buy price", buyPrice, market.maxPrice - (market.maxPrice * (market.buyPercentageFromCurrentMarket / 100)))
                     buyPrice = market.maxPrice - (market.maxPrice * (market.buyPercentageFromCurrentMarket / 100))
@@ -240,6 +240,7 @@ async function run() {
                 }
                 console.log("     found buy / sell quantites", buyQty, sellQty)
 
+                /*
                 try {
                     // final sanity check
                     for (let i = 0; i < buyPrices.length; i++) {
@@ -255,6 +256,7 @@ async function run() {
                 } catch (e) {
                     // console.log("buy/sell error", e)
                 }
+                */
 
                 console.log("finished", currency, buyPrices.length, sellPrices.length)
                 currentAvgRate[currency] = parseFloat(avgRate[currency])
@@ -285,28 +287,34 @@ function sanityCheck() {
         let buyPercentageFromCurrentMarket = parseFloat(market.buyPercentageFromCurrentMarket)
         let sellPercentageFromCurrentMarket = parseFloat(market.sellPercentageFromCurrentMarket)
 
-        if (sellPercentageFromCurrentMarket < 0 && buyPercentageFromCurrentMarket < 0) {
+        if ((sellPercentageFromCurrentMarket < 0 && buyPercentageFromCurrentMarket < 0) && buyPercentageFromCurrentMarket > sellPercentageFromCurrentMarket) {
             console.log(currency, "buy and sell percentage overlap!. would always result in buy price higher then sell price.")
             process.exit(1)
         }
 
+        if ((sellPercentageFromCurrentMarket > 0 && buyPercentageFromCurrentMarket > 0) && buyPercentageFromCurrentMarket > sellPercentageFromCurrentMarket) {
+            console.log(currency, "buy and sell percentage overlap!. would always result in buy price higher then sell price.")
+            // process.exit(1)
+        }
+
+
         // if -buy% && -sell%  faile
         // if -buy%  then sell%  <= absolute(-buy%) = fail
         // if -sell% then buy%  <= absoulte(-sell%) = fail
-        if (sellPercentageFromCurrentMarket < 0 && buyPercentageFromCurrentMarket <= Math.abs(sellPercentageFromCurrentMarket)) {
+        if (sellPercentageFromCurrentMarket < 0 && buyPercentageFromCurrentMarket >= Math.abs(sellPercentageFromCurrentMarket)) {
             console.log(currency, "buy and sell percentage overlap 1! would result in identicle buy/sell prices")
-            process.exit(1)
+            //     process.exit(1)
         }
 
-        if (buyPercentageFromCurrentMarket < 0 && sellPercentageFromCurrentMarket <= Math.abs(buyPercentageFromCurrentMarket)) {
+        if (buyPercentageFromCurrentMarket > 0 && sellPercentageFromCurrentMarket <= Math.abs(buyPercentageFromCurrentMarket)) {
             console.log(currency, "buy and sell percentage overlap 2! would result in identicle buy/sell prices")
-            process.exit(1)
+            //  process.exit(1)
         }
 
 
         if (market.spreadOrders > 3) {
             console.log(currency, "too many spead orders: ", market.spreadOrders, ". Max is 3")
-            process.exit(1)
+            // process.exit(1)
         }
     }
 
