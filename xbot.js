@@ -119,81 +119,85 @@ async function run() {
         for (const currency in Config.markets) {
             let market = Config.markets[currency]
             let xchangeMarketStr = "BTC_" + currency
+
+            let sellQuantityTotalForMarket = 0
+            let btcQuantityTotalForMarket = 0
+
             if (parseFloat(avgRate[currency]) > 0 && parseFloat(currentAvgRate[currency]) !== parseFloat(avgRate[currency])) {
                 console.log(currency, "calculating avgRate:", parseFloat(avgRate[currency]), currentAvgRate[currency])
-                let btcQuantityTotalForMarket = Math.floor(btcBalanceAvailable * (market.btcPoolPercentage / 100) * 1e8) / 1e8
-                if (parseFloat(btcQuantityTotalForMarket) > parseFloat(balances["BTC"].available)) {
-                    btcQuantityTotalForMarket = btcBalanceAvailable
-                }
-                if (market.maxBtcOnOrders > 0 && btcQuantityTotalForMarket > market.maxBtcOnOrders) {
-                    console.log("     filtering buy quantity", btcQuantityTotalForMarket, market.maxBtcOnOrders)
-                    btcQuantityTotalForMarket = market.maxBtcOnOrders
-                }
 
-                //    btcQuantityTotalForMarket = parseFloat(toFixedSpecial(btcQuantityTotalForMarket), 8)
-
-                // let power = Config.quantityDecimalPrecision[currency] === 0 ? 1 : Config.quantityDecimalPrecision[currency]
-                let fullpower = '1e' + Config.quantityDecimalPrecision[currency]
-                let sellQuantityTotalForMarket = Math.floor(parseFloat(balances[currency].available) * fullpower) / fullpower
-                if (market.maxOnOrders > 0 && sellQuantityTotalForMarket > market.maxOnOrders) {
-                    console.log("     filtering sell quantity", sellQuantityTotalForMarket, market.maxOnOrders)
-                    sellQuantityTotalForMarket = market.maxOnOrders
-                }
-
-                console.log("     found max buy/sell quantities", btcQuantityTotalForMarket.toFixed(8), sellQuantityTotalForMarket, fullpower, Math.floor(parseFloat(balances[currency].available) * fullpower))
-
-                let buyPrice = toFixedSpecial(parseFloat(avgRate[currency]) + (parseFloat(avgRate[currency]) * (market.buyPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
-                if (market.maxPrice > 0 && buyPrice > market.maxPrice) {
-                    console.log("     filtering buy price", buyPrice, market.maxPrice - (market.maxPrice * (market.buyPercentageFromCurrentMarket / 100)))
-                    buyPrice = market.maxPrice - (market.maxPrice * (market.buyPercentageFromCurrentMarket / 100))
-                }
-
-                let sellPrice = toFixedSpecial(parseFloat(avgRate[currency]) + (parseFloat(avgRate[currency]) * (market.sellPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
-                if (market.maxPrice > 0 && sellPrice > market.maxPrice) {
-                    console.log("     filtering sell price", sellPrice, market.maxPrice)
-                    buyPrice = market.maxPrice
-                }
-
-                console.log("     found buy / sell prices", buyPrice, sellPrice)
-                let buyPrices = []
-                let sellPrices = []
-                let buyQty = []
-                let sellQty = []
-
-                if (market.spreadOrders > 1) {
-                    console.log("   setting up spread")
-
-                    let lowestbuyPrice = toFixedSpecial(parseFloat(buyPrice) - parseFloat(buyPrice) * (market.spreadPercentage / 100), Config.priceDecimalPrecision[currency])
-                    let highestSellPrice = toFixedSpecial(parseFloat(sellPrice) + parseFloat(sellPrice) * (market.spreadPercentage / 100), Config.priceDecimalPrecision[currency])
-
-                    console.log("     found lowest buy / highest sell", lowestbuyPrice, highestSellPrice)
-
-                    if (market.spreadOrders === 2) {
-                        buyPrices = [parseFloat(buyPrice), parseFloat(lowestbuyPrice)]
-                        sellPrices = [parseFloat(sellPrice), parseFloat(highestSellPrice)]
-                    } else {
-                        let middleBuyPrice = toFixedSpecial((parseFloat(buyPrice) + parseFloat(lowestbuyPrice)) / 2, Config.priceDecimalPrecision[currency])
-                        let middleSellPrice = toFixedSpecial((parseFloat(sellPrice) + parseFloat(highestSellPrice)) / 2, Config.priceDecimalPrecision[currency])
-
-                        buyPrices = [parseFloat(buyPrice), parseFloat(middleBuyPrice), parseFloat(lowestbuyPrice)]
-                        sellPrices = [parseFloat(sellPrice), parseFloat(middleSellPrice), parseFloat(highestSellPrice)]
-
-                        console.log("     found middle buy / middle sell", buyPrices, sellPrices)
+                if (parseFloat(balances["BTC"].available !== 0)) {
+                    let btcQuantityTotalForMarket = Math.floor(btcBalanceAvailable * (market.btcPoolPercentage / 100) * 1e8) / 1e8
+                    if (parseFloat(btcQuantityTotalForMarket) > parseFloat(balances["BTC"].available)) {
+                        btcQuantityTotalForMarket = btcBalanceAvailable
                     }
-                } else {
-                    buyPrices = [parseFloat(buyPrice)]
-                    sellPrices = [parseFloat(sellPrice)]
+                    if (market.maxBtcOnOrders > 0 && btcQuantityTotalForMarket > market.maxBtcOnOrders) {
+                        console.log("     filtering buy quantity", btcQuantityTotalForMarket, market.maxBtcOnOrders)
+                        btcQuantityTotalForMarket = market.maxBtcOnOrders
+                    }
                 }
 
-                if (buyPrices.length === 1) {
+                if (parseFloat(balances[currency].available !== 0)) {
+                    let fullpower = '1e' + Config.quantityDecimalPrecision[currency]
+                    let sellQuantityTotalForMarket = Math.floor(parseFloat(balances[currency].available) * fullpower) / fullpower
+                    if (market.maxOnOrders > 0 && sellQuantityTotalForMarket > market.maxOnOrders) {
+                        console.log("     filtering sell quantity", sellQuantityTotalForMarket, market.maxOnOrders)
+                        sellQuantityTotalForMarket = market.maxOnOrders
+                    }
+                }
+            }
 
+            console.log("     found max buy/sell quantities", btcQuantityTotalForMarket.toFixed(8), sellQuantityTotalForMarket, fullpower, Math.floor(parseFloat(balances[currency].available) * fullpower))
+
+            let buyPrice = toFixedSpecial(parseFloat(avgRate[currency]) + (parseFloat(avgRate[currency]) * (market.buyPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
+            if (market.maxPrice > 0 && buyPrice > market.maxPrice) {
+                console.log("     filtering buy price", buyPrice, market.maxPrice - (market.maxPrice * (market.buyPercentageFromCurrentMarket / 100)))
+                buyPrice = market.maxPrice - (market.maxPrice * (market.buyPercentageFromCurrentMarket / 100))
+            }
+
+            let sellPrice = toFixedSpecial(parseFloat(avgRate[currency]) + (parseFloat(avgRate[currency]) * (market.sellPercentageFromCurrentMarket / 100)), Config.priceDecimalPrecision[currency])
+            if (market.maxPrice > 0 && sellPrice > market.maxPrice) {
+                console.log("     filtering sell price", sellPrice, market.maxPrice)
+                buyPrice = market.maxPrice
+            }
+
+            console.log("     found buy / sell prices", buyPrice, sellPrice)
+            let buyPrices = []
+            let sellPrices = []
+            let buyQty = []
+            let sellQty = []
+
+            if (market.spreadOrders > 1) {
+                console.log("   setting up spread")
+
+                let lowestbuyPrice = toFixedSpecial(parseFloat(buyPrice) - parseFloat(buyPrice) * (market.spreadPercentage / 100), Config.priceDecimalPrecision[currency])
+                let highestSellPrice = toFixedSpecial(parseFloat(sellPrice) + parseFloat(sellPrice) * (market.spreadPercentage / 100), Config.priceDecimalPrecision[currency])
+
+                console.log("     found lowest buy / highest sell", lowestbuyPrice, highestSellPrice)
+
+                if (market.spreadOrders === 2) {
+                    buyPrices = [parseFloat(buyPrice), parseFloat(lowestbuyPrice)]
+                    sellPrices = [parseFloat(sellPrice), parseFloat(highestSellPrice)]
+                } else {
+                    let middleBuyPrice = toFixedSpecial((parseFloat(buyPrice) + parseFloat(lowestbuyPrice)) / 2, Config.priceDecimalPrecision[currency])
+                    let middleSellPrice = toFixedSpecial((parseFloat(sellPrice) + parseFloat(highestSellPrice)) / 2, Config.priceDecimalPrecision[currency])
+
+                    buyPrices = [parseFloat(buyPrice), parseFloat(middleBuyPrice), parseFloat(lowestbuyPrice)]
+                    sellPrices = [parseFloat(sellPrice), parseFloat(middleSellPrice), parseFloat(highestSellPrice)]
+
+                    console.log("     found middle buy / middle sell", buyPrices, sellPrices)
+                }
+            } else {
+                buyPrices = [parseFloat(buyPrice)]
+                sellPrices = [parseFloat(sellPrice)]
+            }
+
+            if (btcQuantityTotalForMarket > 0) {
+                if (buyPrices.length === 1) {
                     let qty = GetQuantityFromBtcTotal(buyPrices[0], btcQuantityTotalForMarket, currency)
                     buyQty = [parseFloat(qty)]
+
                 } else {
-
-
-
-
                     let buyBtcQtyEach = parseFloat((btcQuantityTotalForMarket / buyPrices.length).toFixed(8))
                     // check and aadjust
                     let newTotal = parseFloat((buyBtcQtyEach * buyPrices.length).toFixed(8))
@@ -215,7 +219,9 @@ async function run() {
                         }
                     }
                 }
+            }
 
+            if (sellQuantityTotalForMarket !== 0) {
                 if (sellPrices.length === 1) {
                     sellQty = [parseFloat(toFixedSpecial(sellQuantityTotalForMarket, Config.quantityDecimalPrecision[currency]))]
                 } else {
@@ -238,38 +244,43 @@ async function run() {
                         }
                     }
                 }
-                console.log("     found buy / sell quantites", buyQty, sellQty)
+            }
+            console.log("     found buy / sell quantites", buyQty, sellQty)
 
 
-                try {
-                    // final sanity check
+            try {
+                // final sanity check
+                if (buyQty.length > 0) {
                     for (let i = 0; i < buyPrices.length; i++) {
                         console.log("trying buy order", xchangeMarketStr, buyQty[i], buyPrices[i])
                         let buy = await xchangeBuyLimit(xchangeMarketStr, buyQty[i], buyPrices[i], {})
                         console.log("          made buy order", JSON.stringify(buy))
                     }
+                }
 
+                if (sellQty.length > 0) {
                     for (let i = 0; i < sellPrices.length; i++) {
                         let sell = await xchangeSellLimit(xchangeMarketStr, sellQty[i], sellPrices[i], {})
                         console.log("          made sell order", JSON.stringify(sell))
                     }
-                } catch (e) {
-                    // console.log("buy/sell error", e)
                 }
-
-
-                console.log("finished", currency, buyPrices.length, sellPrices.length)
-                currentAvgRate[currency] = parseFloat(avgRate[currency])
+            } catch (e) {
+                // console.log("buy/sell error", e)
             }
-        }
-        if (firstrun === true) {
-            firstrun = false
-        }
-        defer.setTimeout(run, Config.update_interval * 1000)
-    } catch (e) {
-        defer.setTimeout(run, Config.update_interval * 1000)
 
+
+            console.log("finished", currency, buyPrices.length, sellPrices.length)
+            currentAvgRate[currency] = parseFloat(avgRate[currency])
+        }
     }
+if (firstrun === true) {
+        firstrun = false
+    }
+    defer.setTimeout(run, Config.update_interval * 1000)
+} catch (e) {
+    defer.setTimeout(run, Config.update_interval * 1000)
+
+}
 }
 defer.setTimeout(run, 10)
 
